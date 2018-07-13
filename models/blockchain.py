@@ -13,3 +13,6 @@ class BlockchainModel:
         # A function to generate the first block
         genesis_block = BlockModel(0, time.time(), [], "0")
         self.chain.append(genesis_block)
+
+    def add_new_transaction(self, transaction):
+        self.unconfirmed_transactions.append(transaction)
