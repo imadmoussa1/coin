@@ -35,7 +35,7 @@ To prevent the changes of the previous blocks.
 leading to a mismatch with the previous_hash field in the next block.
 
 ###### What about the first block?
-The first block is called the genesis block. We add it automaticly when initializing the Block Chain.
+The first block is called the genesis block. We add it automaticly when initializing the Block Chain of each peers.
 
 #### Proof of Work algorithm
 
@@ -44,7 +44,7 @@ The item is called the proof and, as it sounds, it is proof that a computer perf
 
 So we're going to introduce a new field in our block called nonce.
 A nonce is a number that we'll keep on changing until we get a value that satisfies our constraint:
-- Higher than the last proof of work on the blockchain
+- Higher than the last proof of work on the blockchain ( we start counting from the last proof value)
 - A multiple of 7 and of the length of the last block json representation 
 
 By using the proof the block cannot be changed without redoing the work, As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.
@@ -53,11 +53,25 @@ By using the proof the block cannot be changed without redoing the work, As late
 #### Mining
 
 The process of putting the unconfirmed transactions in a block and computing Proof of Work is known as the mining of blocks.
-Once the nonce (proof) satisfying our constraints is figured out, we can say that a block has been mined, and the block is put into the blockchain.
+Once the nonce (proof) satisfying our constraints, we can say that a block has been mined, and the block is put into the blockchain.
+
+
+After that We need to announce to the network that it has mined a block so that everyone can update their blockchain.
 
 > And the person how mined a block will receive 1 coin, and this transaction will be added to the block.
+
+#### Establish consensus and decentralization
+Even though we're linking block with hashes, we still can't trust a single entity.
+We need multiple nodes to maintain our blockchain.
+
+There's a problem with multiple nodes, the copy of chains can be different.
+In that case, we need to agree upon some version of the chain to maintain the integrity of the entire system.
+We need to achieve consensus.
+
+A simple consensus algorithm could be to agree upon the longest valid chain when the chains of different nodes diverge.
+
 ## About the Restful API
-This application is accessible through a Restful API interface , using Postman .
+This application is accessible through a Restful API interface.
 
 #### Initial the 10000 coins
 We can initial the coins by using this route :
@@ -68,7 +82,7 @@ This route it can be used once , and return an error when used more : `{ "messag
  
 #### Make transaction between two addresses
 The new transactions are initially stored in a pool of unconfirmed transactions.
-To make transaction we should use this route :
+We can make transaction using this end point :
 ```
 POST /transaction HTTP/1.1
 Host: localhost:5000
@@ -80,7 +94,17 @@ Content-Type: application/json
     "amount": 2
 }
 ```
+#### Add new nodes
+To add new node to the network (peers) , we can use this endpoint:
+```
+POST /add_nodes HTTP/1.1
+Host: localhost:5000
+Content-Type: application/json
 
+{
+ "node_url": "127.0.0.1:8000"
+}
+```
 #### Mine
 
 User can mine blocks on the block chain using this route:
@@ -92,14 +116,53 @@ Content-Type: application/json
 The respond will be the index of the minded block.
 In case we don't have unconfirmed transactions, the response will be `{"message": "No transactions to mine"}`
 
-#### Chain 
+###### Proof of work
+In the Mining function we run the `pow algorithm` to generate the proof number saved in the nonce field of the block.
+After that we add the block to the chain using add_to_block function.
 
-To see the blockchain mined till now we can use this route :
+the proof of work condition :
+```
+    difficulty = 7
+    # new_nonce = counting from the last proof + 1
+    def pow_definition(self, new_nonce):
+        return new_nonce % BlockchainModel.difficulty == 0 and new_nonce % len(json.dumps(self.last_block.__dict__, sort_keys=True)) == 0
+```
+###### Broadcast the new block
+We broadcast the new block to the nodes in the networks, we request a post call to the add_block endpoint of each node in the network.
+
+we check if the new block is valid(by checking if previous_hash field is equal to the hash of the previous block and if the proof is valid )
+```
+POST /add_block HTTP/1.1
+Host: localhost:8000
+Content-Type: application/json
+
+ {
+    "hash": "5198497e3ce7d8561cd563bff0bd2baa3357b64620fbfa908fe7da9d3a8166d4",
+    "index": 1,
+    "nonce": 175,
+    "previous_hash": "2ffa737a7553b66bc690f9489757bcac7d14a0ab1736613a487ec34b69288e16",
+    "timestamp": 1531591071.5817795,
+    "transactions": [
+        {
+            "address_from": "3e23e8160039594a33894f6564e1b1348bbd7a0088d42c4acb73eeaed59c009d",
+            "address_to": "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb",
+            "amount": 2,
+            "time": 1531591067.7787225
+        }
+    ]
+ }
+ ```
+
+#### Chain
+To see the blockchain we can use this endpoint :
 ```
 GET /chain HTTP/1.1
 Host: localhost:5000
 Content-Type: application/json
 ```
+
+before returning the blockchain result we use the `consensus algorithm` to choose the longest valid chain( valid proof ).
+
 response :
 ```
 {
@@ -137,7 +200,6 @@ response :
     "length": 2
 }
 ```
-
 ## Instructions to run
 #### Python Version 
 In this project we are using `python 3.6`
@@ -160,5 +222,29 @@ pip install -r requirements.txt
 #### Debug Mode
 Run our application:
 ```
-python app.py
+export FLASK_APP=app
+export FLASK_RUN_PORT=5000
+flask run
 ```
+to test the application using to node
+```
+export FLASK_APP=app
+export FLASK_RUN_PORT=8000
+flask run
+```
+
+## Examples
+#### Test the Application using different node in the network
+1) Run the application using the port 5000
+2) Run on new terminal tab the same application using port 8000
+3) We add new Node to the application (the node of the port 8000 )
+4) Add transaction on the node 5000
+5) Mining on the node 5000
+
+    >>Testing the Broadcast of the block
+6) We check the chain of the node 5000, we found the block is added to chain
+7) We check the chain of the node 8000, we found the same block added
+
+    >>Testing the consensus algorithm ( valid chain and longest chain)
+8) we add more transaction on the node of port 5000 until the chain be longer than the one app port 8000
+9) We check the chain of the node 5000, we found we have the same chain ( the consensus algo update the chain )
