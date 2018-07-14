@@ -11,4 +11,4 @@ class TransactionModel:
         self.time = time.time()
 
     def json(self):
-        return {'address_from': self.address_from, 'address_from': self.address_to, 'amount': self.amount, 'time': self.time}
+        return {'address_from': self.address_from, 'address_to': self.address_to, 'amount': self.amount, 'time': self.time}
