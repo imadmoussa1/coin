@@ -30,7 +30,7 @@ def initial_coin():
 
 # endpoint to create new transaction.
 @app.route('/transaction', methods=['POST'])
-def new_transaction():
+def add_transaction():
     parser = reqparse.RequestParser()
     parser.add_argument('address_from', type=str, required=True, help="Invalid transaction, address_from is missing")
     parser.add_argument('address_to', type=str, required=True, help="Invalid transaction, address_to is missing ")
@@ -66,7 +66,7 @@ def mine_unconfirmed_transactions():
 
 # endpoint to add new peers to the network.
 @app.route('/add_nodes', methods=['POST'])
-def register_new_peers():
+def add_nodes():
     parser = reqparse.RequestParser()
     parser.add_argument('node_url', type=str, required=True, help="Invalid transaction, node_url is missing")
     data = parser.parse_args()
@@ -105,7 +105,7 @@ def consensus():
         response = requests.get('http://{}/chain'.format(node))
         length = response.json()['length']
         chain = response.json()['chain']
-        if length > current_len:
+        if length > current_len and blockchain.check_chain_validity(chain):
             current_len = length
             longest_chain = chain
     if longest_chain:

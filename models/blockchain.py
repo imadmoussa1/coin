@@ -11,10 +11,10 @@ class BlockchainModel:
     def __init__(self):
         self.unconfirmed_transactions = []
         self.chain = []
-        self.create_genesis_block()
+        self.genesis_block()
 
     # A function to generate the first block
-    def create_genesis_block(self):
+    def genesis_block(self):
         genesis_block = BlockModel(0, 0, [], "0")
         self.chain.append(genesis_block)
 
@@ -44,7 +44,7 @@ class BlockchainModel:
 
         self.unconfirmed_transactions = []
         # broadcast the new block to network peers
-        self.announce_new_block(new_block, peers)
+        self.broadcast_new_block(new_block, peers)
         return new_block.index
 
     # proof of work function to generate the number use as proof
@@ -60,10 +60,14 @@ class BlockchainModel:
 
         if previous_hash != block.previous_hash:
             return False
+
+        if not self.pow_definition(block.nonce):
+            return False
         block.nonce = proof
         self.chain.append(block)
         return True
 
+    # use to validate the chain ( valid proof and valid hash for each block in chain)
     def check_chain_validity(self, chain):
         result = True
         previous_hash = "0"
@@ -73,14 +77,11 @@ class BlockchainModel:
             o_block.hash = block['hash']
             o_block.nonce = block['nonce']
             block_hash = o_block.hash
-            if not self.is_valid_proof(o_block, o_block.hash) or previous_hash != o_block.previous_hash:
+            if not self.pow_definition(o_block.nonce) or previous_hash != o_block.previous_hash:
                 result = False
                 break
             o_block.hash, previous_hash = block_hash, block_hash
         return result
-
-    def is_valid_proof(self, block, block_hash):
-        return self.pow_definition(block.nonce) and block_hash == block.generate_hash_block()
 
     @staticmethod
     def convert_chain_from_json_to_object(chain):
@@ -94,7 +95,8 @@ class BlockchainModel:
         return new_chain
 
     # function to call the add_block endpoint of the peers node ( broadcast the new block)
-    def announce_new_block(self, block, peers):
+    @staticmethod
+    def broadcast_new_block(block, peers):
         for peer in peers:
             url = "http://{}/add_block".format(peer)
             requests.post(url, data=json.dumps(block.__dict__, sort_keys=True), headers={'Content-type': 'application/json'})
