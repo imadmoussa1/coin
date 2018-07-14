@@ -11,9 +11,8 @@ class BlockModel:
         self.hash = self.generate_hash_block()
         self.nonce = 0
 
+    # generate the hash of the block contents.
     def generate_hash_block(self):
-        # generate the hash of the block contents.
-
         block_string = json.dumps(self.__dict__, sort_keys=True)
         return sha256((str(self.index) +
                       str(self.timestamp) +

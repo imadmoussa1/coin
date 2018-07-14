@@ -14,10 +14,11 @@ blockchain = BlockchainModel()
 coin_nb = None
 transaction_amount = []
 
-# the address to other participating members of the network
+# the node address of the network
 peers = set()
 
-# endpoint to submit a new transaction.
+
+# endpoint to initial the coins.
 @app.route('/initial_coin', methods=['GET'])
 def initial_coin():
     global coin_nb
@@ -27,7 +28,7 @@ def initial_coin():
     return jsonify({'message': "can not change the number of coins"}), 400
 
 
-# endpoint to submit a new transaction.
+# endpoint to create new transaction.
 @app.route('/transaction', methods=['POST'])
 def new_transaction():
     parser = reqparse.RequestParser()
@@ -44,7 +45,7 @@ def new_transaction():
 # endpoint to return the chains in the block.
 @app.route('/chain', methods=['GET'])
 def get_chain():
-    # make sure we've the longest chain
+    # make sure we've the longest chain when we have nodes
     consensus()
     chain_data = []
     for block in blockchain.chain:
@@ -52,7 +53,7 @@ def get_chain():
     return jsonify({"length": len(chain_data), "chain": chain_data}), 200
 
 
-# endpoint to request the node to mine the unconfirmed transactions.
+# endpoint to mine the unconfirmed transactions.
 @app.route('/mine', methods=['GET'])
 def mine_unconfirmed_transactions():
     if not blockchain.unconfirmed_transactions:
@@ -74,9 +75,10 @@ def register_new_peers():
         return jsonify({'message': "Invalid data"}), 400
 
     peers.add(nodes)
-    return jsonify({'message': "Success"}), 200
+    return jsonify({'message': "Success"}), 201
 
 
+# end point to create new block used when the peers broadcast the mined block
 @app.route('/add_block', methods=['POST'])
 def validate_and_add_block():
     block_data = request.get_json()
@@ -88,13 +90,13 @@ def validate_and_add_block():
     added = blockchain.add_block(block, proof)
 
     if not added:
-        return "The block was discarded by the node", 400
+        return jsonify({'message': "The block was discarded by the node"}), 400
 
-    return "Block added to the chain", 201
+    return jsonify({'message': "Block added to the chain"}), 201
 
 
+# consnsus algorithm. to check the longer valid chain, and replace the old chain with it.
 def consensus():
-    # Our simple consnsus algorithm. If a longer valid chain is found, our chain is replaced with it.
     global blockchain
 
     longest_chain = None
@@ -106,11 +108,9 @@ def consensus():
         if length > current_len:
             current_len = length
             longest_chain = chain
-
     if longest_chain:
         blockchain.chain = BlockchainModel.convert_chain_from_json_to_object(chain)
         return True
-
     return False
 
 
