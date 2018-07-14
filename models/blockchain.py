@@ -1,8 +1,11 @@
+import json
 import time
 from models.block import BlockModel
 
 
 class BlockchainModel:
+    # difficulty of our PoW algorithm
+    difficulty = 7
 
     def __init__(self):
         self.unconfirmed_transactions = []

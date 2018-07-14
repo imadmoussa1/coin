@@ -1,10 +1,5 @@
 import json
-import time
-
-from models.block import BlockModel
-from resources.transaction import Transaction
-from flask import Flask, request
-import requests
+from flask import Flask, request, jsonify
 from flask import json
 from flask_restful import Resource, reqparse
 from models.transaction import TransactionModel
@@ -18,8 +13,8 @@ blockchain = BlockchainModel()
 @app.route('/new_transaction', methods=['POST'])
 def new_transaction():
     parser = reqparse.RequestParser()
-    parser.add_argument('user_from', type=str, required=True, help="Invalid transaction, user_from is missing")
-    parser.add_argument('user_to', type=str, required=True, help="Invalid transaction, user_to is missing ")
+    parser.add_argument('address_from', type=str, required=True, help="Invalid transaction, address_from is missing")
+    parser.add_argument('address_to', type=str, required=True, help="Invalid transaction, address_to is missing ")
     parser.add_argument('amount', type=int, required=True, help="Invalid transaction, amount is missing")
     data = parser.parse_args()
 

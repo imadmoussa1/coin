@@ -1,13 +1,14 @@
 import time
+from hashlib import sha256
 
 
 class TransactionModel:
 
-    def __init__(self, user_from, user_to, amount):
-        self.user_from = user_from
-        self.user_to = user_to
+    def __init__(self, address_from, address_to, amount):
+        self.address_from = sha256(address_from.encode()).hexdigest()
+        self.address_to = sha256(address_to.encode()).hexdigest()
         self.amount = amount
         self.time = time.time()
 
     def json(self):
-        return {'user_from': self.user_from, 'user_to': self.user_to, 'amount': self.amount, 'time': self.time}
+        return {'address_from': self.address_from, 'address_from': self.address_to, 'amount': self.amount, 'time': self.time}
