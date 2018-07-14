@@ -9,7 +9,7 @@ class BlockModel:
         self.transactions = transactions
         self.previous_hash = previous_hash
         self.hash = self.generate_hash_block()
-        self.nonce = 1
+        self.nonce = 0
 
     def generate_hash_block(self):
         # generate the hash of the block contents.

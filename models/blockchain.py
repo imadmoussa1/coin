@@ -14,7 +14,7 @@ class BlockchainModel:
 
     def create_genesis_block(self):
         # A function to generate the first block
-        genesis_block = BlockModel(0, time.time(), [], "0")
+        genesis_block = BlockModel(0, 0, [], "0")
         self.chain.append(genesis_block)
 
     def add_new_transaction(self, transaction):
@@ -28,7 +28,7 @@ class BlockchainModel:
     def last_block(self):
         return self.chain[-1]
 
-    def mine(self):
+    def mine(self, peers):
         # This function to add the pendingtransactions to the blockchain by adding them to the block
         last_block = self.last_block
 
@@ -41,11 +41,12 @@ class BlockchainModel:
         self.add_block(new_block, proof)
 
         self.unconfirmed_transactions = []
+        self.announce_new_block(new_block, peers)
         return new_block.index
 
     def proof_of_work(self, block):
         # proof of work algo
-        new_nonce = self.last_block.nonce
+        new_nonce = self.last_block.nonce + 1
 
         while not self.pow_definition(new_nonce):
             new_nonce += 1
@@ -61,3 +62,40 @@ class BlockchainModel:
         block.nonce = proof
         self.chain.append(block)
         return True
+
+    def check_chain_validity(self, chain):
+        result = True
+        previous_hash = "0"
+
+        for block in chain:
+            o_block = BlockModel(index=block['index'], timestamp=block['timestamp'], transactions=block['transactions']
+                                 , previous_hash=block['previous_hash'])
+            o_block.hash = block['hash']
+            o_block.nonce = block['nonce']
+            block_hash = o_block.hash
+
+            if not self.is_valid_proof(o_block, o_block.hash) or previous_hash != o_block.previous_hash:
+                result = False
+                break
+
+            o_block.hash, previous_hash = block_hash, block_hash
+        return result
+
+    def is_valid_proof(self, block, block_hash):
+        return self.pow_definition(block.nonce) and block_hash == block.generate_hash_block()
+
+    @staticmethod
+    def convert_chain_from_json_to_object(chain):
+        new_chain = []
+        for block in chain:
+            o_block = BlockModel(index=block['index'], timestamp=block['timestamp'], transactions=block['transactions']
+                                 , previous_hash=block['previous_hash'])
+            o_block.hash = block['hash']
+            o_block.nonce = block['nonce']
+            new_chain.append(o_block)
+        return new_chain
+
+    def announce_new_block(self, block, peers):
+        for peer in peers:
+            url = "http://{}/add_block".format(peer)
+            requests.post(url, data=json.dumps(block.__dict__, sort_keys=True), headers={'Content-type': 'application/json'})

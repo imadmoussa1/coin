@@ -1,9 +1,12 @@
 import json
+import requests
 from flask import Flask, request, jsonify
 from flask import json
 from flask_restful import Resource, reqparse
+from models.block import BlockModel
 from models.transaction import TransactionModel
 from models.blockchain import BlockchainModel
+
 app = Flask(__name__)
 
 # the node's copy of blockchain
@@ -11,6 +14,8 @@ blockchain = BlockchainModel()
 coin_nb = None
 transaction_amount = []
 
+# the address to other participating members of the network
+peers = set()
 
 # endpoint to submit a new transaction.
 @app.route('/initial_coin', methods=['GET'])
@@ -53,7 +58,7 @@ def mine_unconfirmed_transactions():
         return jsonify({'message': "No transactions to mine"})
     transaction = TransactionModel("network", "miner", 1)
     blockchain.add_new_transaction(transaction.json())
-    result = blockchain.mine()
+    result = blockchain.mine(peers)
     return jsonify({'message': "Block #{} is mined.".format(result)})
 
 
