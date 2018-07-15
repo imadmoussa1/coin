@@ -1,21 +1,33 @@
 # CSICoin
-## Introduction
 A new Blockchain infrastructure capable to make transaction between two addresses.
+
+1) [About the application](#about-the-application)
+2) [About the Restful API](#about-the-restful-api)
+3) [Instructions to install and run](#instructions-to-install-and-run)
+4) [Examples](#examples)
 ## About the application
 
-Our goal is to build a simple Restful Api that allows users to make transaction between addresses.
+Our goal is to build a simple  Blockchain infrastructure with a Restful Api interface that allows users to make transaction between addresses and mine to earn one coin for each block.
 
-#### The structure of the **Transaction**
-we'll store the transaction in a JSON format.
+This Restful api interface help us to initial the coins, make transactions between two addresses and mining.
+### Application Structure
 
-The transaction object fields :
+#### Transaction
+used to transfer an amount between two addresses (address_from, address_to), the value of addresses should be the user public key,
+but to simplify the process we hash the values, for privacy reasons.
+Transaction are saved in unconfirmed transactions List until [Mining](#mining).
+
+##### The structure of the **Transaction** object
 1) address_from ( hashed value to simulate the user public key )
 2) address_to ( hashed value to simulate the user public key )
 3) amount
 4) time
+#### BLock
+Each Nodes Collect new transactions into a block.
+We'll store the hash of every block in a field inside our Block object.
+and we'll store the transaction as a List of dictionary into the block.
 
-#### The structure of the **Block**
-The Block contain those field saved in a JSON format:
+##### The structure of the **Block** object
 1) index
 2) timestamp ( Time when we generate the block)
 3) transactions ( List of transaction added to the block )
@@ -25,7 +37,7 @@ The Block contain those field saved in a JSON format:
 
 #### Chain the blocks
 
-The blockchain is the collection of blocks,
+The blockchain is a collection of blocks,
 and each block is linked to the previous block by the previous_hash field.
 
 ###### Why using the previous hash ?
@@ -35,28 +47,29 @@ To prevent the changes of the previous blocks.
 leading to a mismatch with the previous_hash field in the next block.
 
 ###### What about the first block?
-The first block is called the genesis block. We add it automaticly when initializing the Block Chain of each peers.
+The first block is called the genesis block. We add it automaticly when initializing the Block Chain object of each peers.
 
 #### Proof of Work algorithm
 
 A Proof-of-Work algorithm is an algorithm that generates an item that is difficult to create but easy to verify.
 The item is called the proof and, as it sounds, it is proof that a computer performed a certain amount of work.
 
-So we're going to introduce a new field in our block called nonce.
+So we're going to introduce a field in our block called nonce.
 A nonce is a number that we'll keep on changing until we get a value that satisfies our constraint:
 - Higher than the last proof of work on the blockchain ( we start counting from the last proof value)
 - A multiple of 7 and of the length of the last block json representation 
 
-By using the proof the block cannot be changed without redoing the work, As later blocks are chained after it, the work to change the block would include redoing all the blocks after it.
+By using the proof the block cannot be changed without redoing the work, As later blocks are chained after it,
+the work to change the block would include redoing all the blocks after it.
 
 
 #### Mining
 
-The process of putting the unconfirmed transactions in a block and computing Proof of Work is known as the mining of blocks.
-Once the nonce (proof) satisfying our constraints, we can say that a block has been mined, and the block is put into the blockchain.
+The process of putting the unconfirmed transactions in a block and computing the Proof of Work.
+Once the nonce (proof) satisfying our constraints, we can say that a block has been mined, and the block is added to the blockchain.
 
 
-After that We need to announce to the network that it has mined a block so that everyone can update their blockchain.
+After that We need to announce to the network that a block has been mined so that everyone can update their blockchain.
 
 > And the person how mined a block will receive 1 coin, and this transaction will be added to the block.
 
@@ -116,7 +129,7 @@ Content-Type: application/json
 The respond will be the index of the minded block.
 In case we don't have unconfirmed transactions, the response will be `{"message": "No transactions to mine"}`
 
-###### Proof of work
+#### Proof of work
 In the Mining function we run the `pow algorithm` to generate the proof number saved in the nonce field of the block.
 After that we add the block to the chain using add_to_block function.
 
@@ -127,10 +140,10 @@ the proof of work condition :
     def pow_definition(self, new_nonce):
         return new_nonce % BlockchainModel.difficulty == 0 and new_nonce % len(json.dumps(self.last_block.__dict__, sort_keys=True)) == 0
 ```
-###### Broadcast the new block
-We broadcast the new block to the nodes in the networks, we request a post call to the add_block endpoint of each node in the network.
-
-we check if the new block is valid(by checking if previous_hash field is equal to the hash of the previous block and if the proof is valid )
+#### Broadcast the new block
+We broadcast the new block to the nodes in the networks,
+by requesting the add_block endpoint of each node in the network. we check if [the block is valid](#valid-block)
+before adding it to the chain.
 ```
 POST /add_block HTTP/1.1
 Host: localhost:8000
@@ -161,7 +174,7 @@ Host: localhost:5000
 Content-Type: application/json
 ```
 
-before returning the blockchain result we use the `consensus algorithm` to choose the longest valid chain( valid proof ).
+before returning the blockchain result we use the `consensus algorithm` to choose the longest [valid chain](#valid-chain) between nodes.
 
 response :
 ```
@@ -200,13 +213,21 @@ response :
     "length": 2
 }
 ```
-## Instructions to run
+
+
+##### Valid Chain
+To validate the blockchain, we loop each block in the chain and we check if [it is a valid block](#valid-block)
+##### Valid Block
+1) If previous_hash field is equal to the hash of the previous block
+2) If the proof is valid by checking the constraint.
+
+## Instructions to install and run
 #### Python Version 
 In this project we are using `python 3.6`
 #### Create an environment
 Create a venv folder within the project folder:
 ```
-cd coin
+cd coin-develop
 python3 -m venv venv
 ```
 #### Activate the env
@@ -226,7 +247,7 @@ export FLASK_APP=app
 export FLASK_RUN_PORT=5000
 flask run
 ```
-to test the application using to node
+to test the application using two nodes
 ```
 export FLASK_APP=app
 export FLASK_RUN_PORT=8000
@@ -237,14 +258,14 @@ flask run
 #### Test the Application using different node in the network
 1) Run the application using the port 5000
 2) Run on new terminal tab the same application using port 8000
-3) We add new Node to the application (the node of the port 8000 )
-4) Add transaction on the node 5000
-5) Mining on the node 5000
+3) We add new Node to the application using port 5000
+4) Add new transaction on the node using port 5000
+5) Mining on the node using port 5000
 
     >>Testing the Broadcast of the block
-6) We check the chain of the node 5000, we found the block is added to chain
+6) We check the chain of the node 5000, we found the block is added to the chain
 7) We check the chain of the node 8000, we found the same block added
 
-    >>Testing the consensus algorithm ( valid chain and longest chain)
-8) we add more transaction on the node of port 5000 until the chain be longer than the one app port 8000
+    >>Testing the consensus algorithm
+8) we add new transaction on the node of port 8000 until the chain be longer than the one of the node using port 5000
 9) We check the chain of the node 5000, we found we have the same chain ( the consensus algo update the chain )
