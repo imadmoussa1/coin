@@ -68,19 +68,24 @@ class BlockchainModel:
         return True
 
     # use to validate the chain ( valid proof and valid hash for each block in chain)
-    def check_chain_validity(self, chain):
+    @staticmethod
+    def check_chain_validity(chain):
         result = True
         previous_hash = "0"
+        previous_block_len = 1
         for block in chain:
             o_block = BlockModel(index=block['index'], timestamp=block['timestamp'], transactions=block['transactions']
                                  , previous_hash=block['previous_hash'])
             o_block.hash = block['hash']
             o_block.nonce = block['nonce']
             block_hash = o_block.hash
-            if not self.pow_definition(o_block.nonce) or previous_hash != o_block.previous_hash:
+            if not o_block.nonce % BlockchainModel.difficulty == 0 \
+                    and o_block.nonce % previous_block_len == 0\
+                    or previous_hash != o_block.previous_hash:
                 result = False
                 break
-            o_block.hash, previous_hash = block_hash, block_hash
+            o_block.hash, previous_hash, previous_block = block_hash, block_hash, o_block
+            previous_block_len = len(json.dumps(previous_block.__dict__, sort_keys=True))
         return result
 
     @staticmethod
