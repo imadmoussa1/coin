@@ -1,4 +1,4 @@
-# CSICoin
+# Coin
 A new Blockchain infrastructure capable to make transaction between two addresses.
 
 1) [About the application](#about-the-application)
